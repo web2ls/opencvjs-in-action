@@ -58,8 +58,6 @@ export function renderer(eventData) {
     return;
   }
 
-  console.log('rendered fn call', rois);
-
   const filteredRois = rois;
 
   filteredRois.forEach(roi => {

@@ -32,6 +32,11 @@ function saveRois(rois) {
   localStorage.setItem('rois', JSON.stringify(rois));
 };
 
+function addIdAttribute() {
+  const canvas = document.querySelector('.cornerstone-canvas');
+  canvas.setAttribute('id', 'original-canvas');
+}
+
 class ExamplePageBasic extends Component {
   constructor(props) {
     super(props);
@@ -76,6 +81,8 @@ class ExamplePageBasic extends Component {
   showImage() {
     console.clear();
 
+    addIdAttribute();
+
     const enabledElement = cornerstone.getEnabledElements()[0];
     const element = enabledElement.element;
 
@@ -90,7 +97,6 @@ class ExamplePageBasic extends Component {
     // предварительно переводим в grayscale
     let canvasDst = cv.Mat.zeros(canvasSrc.rows, canvasSrc.cols, cv.CV_8UC3);
     cv.cvtColor(canvasSrc, canvasSrc, cv.COLOR_RGBA2GRAY, 0);
-    // cv.threshold(canvasSrc, canvasSrc, 120, 200, cv.THRESH_BINARY);
     cv.threshold(canvasSrc, canvasSrc, this.state.minValue, 255, cv.THRESH_TOZERO);
     cv.threshold(canvasSrc, canvasSrc, this.state.maxValue, 255, cv.THRESH_TOZERO_INV);
 
@@ -100,8 +106,6 @@ class ExamplePageBasic extends Component {
 
     // Находим список контуров
     cv.findContours(canvasSrc, canvasContours, canvasHierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
-    console.log('contours', canvasContours);
-    console.log(canvasContours.size());
 
     // Рисуем контура
     for (let i = 0; i < canvasContours.size(); ++i) {
@@ -109,51 +113,52 @@ class ExamplePageBasic extends Component {
       cv.drawContours(canvasDst, canvasContours, i, color, 1, cv.LINE_8, canvasHierarchy, 100);
     }
 
+    // Рендерим найденный контура в дополнительный канвас
     cv.imshow('canvasOutput', canvasDst);
 
+    // Очищаем память
     canvasContours.delete();
     canvasHierarchy.delete();
     canvasSrc.delete();
     canvasDst.delete();
 
-    // const image = enabledElement.image;
-    // const pixels = image.getPixelData();
+    console.log('--------------------------------------------------');
+    console.log('******** Canvas example has been rendered ********');
+    console.log('---------------------------------------------------');
 
+    console.log('--------------------------------------------------');
+    console.log('******** Pixel data example start ********');
+    console.log('---------------------------------------------------');
+
+    const image = enabledElement.image;
+    const pixels = image.getPixelData();
 
     // For example: let mat = cv.matFromArray(2, 2, cv.CV_8UC1, [1, 2, 3, 4]);
     // const pixels = cornerstone.getStoredPixels(element, 0, 0, 512, 512);
     // console.log(pixels);
 
+    let src = cv.matFromArray(image.rows, image.columns, cv.CV_8U, pixels);
+    console.log('srs', src);
 
-
-    // let src = cv.matFromArray(image.rows, image.columns, cv.CV_8U, pixels);
-    // console.log(imgData);
-    // console.log(src);
-
-
-
-    // origSrc.delete();
-    // dst.delete();
-
-    // Определяем границы для канвас-источника
-    // origDst = cv.Mat.zeros(src.rows, src.cols, cv.CV_8U);
-    // cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
-    // cv.threshold(src, src, 120, 255, cv.THRESH_TOZERO);
-    // cv.threshold(src, src, 200, 255, cv.THRESH_TOZERO_INV);
-
-    // treshhold and contours render
-    // let dst = cv.Mat.zeros(src.rows, src.cols, cv.CV_8U);
+    // Make treshold operation
+    let dst = cv.Mat.zeros(src.rows, src.cols, cv.CV_8UC3);
+    console.log('dst', dst);
     // // cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
-    // cv.threshold(src, src, 254, 255, cv.THRESH_TOZERO);
-    // cv.threshold(src, src, 255, 255, cv.THRESH_TOZERO_INV);
+    cv.threshold(src, src, this.state.minValue, 255, cv.THRESH_TOZERO);
+    cv.threshold(src, src, this.state.maxValue, 255, cv.THRESH_TOZERO_INV);
 
+    let contours = new cv.MatVector();
+    let hierarchy = new cv.Mat();
 
+    cv.findContours(src, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+    console.log('count of contours', contours.size());
 
+    for (let i = 0; i < contours.size(); ++i) {
+      let color = new cv.Scalar(255, 0, 0);
+      cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
+    }
 
-
-    // cv.findContours(src, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
-    // console.log('contours', contours);
-    // console.log(contours.size());
+    cv.imshow('original-canvas', dst);
 
     // console.log('hierarchy', hierarchy);
     // const cont = contours.get(0);
@@ -170,6 +175,9 @@ class ExamplePageBasic extends Component {
     // // You can try different conversions.
     // // cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
 
+    console.log('--------------------------------------------------');
+    console.log('******** Pixel data example end ********');
+    console.log('---------------------------------------------------');
 
     cornerstone.draw(element);
   }
